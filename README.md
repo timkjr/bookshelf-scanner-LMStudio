@@ -4,11 +4,10 @@
 
 ## Features
 
-- 📷 **Capture Images**: Take pictures of your bookshelf to scan book titles.
-- 📝 **OCR Processing**: Extracts text from images using custom made deep learning models.
-- 📚 **Book List**: Displays a list of detected book titles from scanned images.
-- 💾 **Save and Search**: Store scanned book titles locally and search through your collection.
-- 🌍 **Cross-Platform**: Works on both Android and iOS devices.
+- **Capture Images**: Take pictures of your bookshelf to scan book titles.
+- **OCR Processing**: Extracts text from images using custom made deep learning models.
+- **Book List**: Displays a list of detected book titles from scanned images.
+- **Save and Search**: Store scanned book titles locally and search through your collection.
 
 ## Technologies Used
 
