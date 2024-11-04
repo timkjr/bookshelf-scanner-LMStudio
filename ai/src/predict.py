@@ -1,65 +1,130 @@
+import re
+import cv2
 import numpy as np
-import pytesseract
 import easyocr
 from torch import Tensor
-from ultralytics import YOLO, SAM
+from ultralytics import YOLO
 from utils import get_image_path, scale_image, rotate_if_spine
 from PIL import Image, ImageEnhance
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+def main():
+    # Initialize the YOLO model and EasyOCR reader
+    yolo_model = YOLO("models/yolo11x-seg.pt", task="segment")
+    reader = easyocr.Reader(["en"])
 
-yolo_model = YOLO("models/yolo11x-seg.pt", task="segment")
-#sam_model = SAM("models/mobile_sam.pt")
-reader = easyocr.Reader(["en"])
+    # Load and preprocess the image
+    image_path = get_image_path("img_1.jpg")
+    scaled_image = load_and_scale_image(image_path)
+    scaled_image = preprocess_image(scaled_image)
+    scaled_image = reduce_noise(scaled_image)
 
-original_image = Image.open(get_image_path("img_1.jpg"))
-scaled_image = scale_image(original_image, (2560, 2560))
+    # Detect books in the image
+    results = detect_books(scaled_image, yolo_model)
+    results.show()
 
-yolo_results = yolo_model.predict(scaled_image, imgsz=2560, half=True, classes=[73], retina_masks=True)
+    # Process each detected book for OCR
+    masks = results.masks
+    boxes = results.boxes
 
-results = yolo_results[0]
-masks = results.masks  # Segmentation masks
-boxes = results.boxes  # Bounding boxes
+    if masks is None or boxes is None:
+        print("No books detected.")
+        return
 
-if masks is None or boxes is None:
-    print("No books detected.")
-    exit()
+    # Loop over each detected book
+    for i, (mask_data, box) in enumerate(zip(masks.data, boxes)):  # type: ignore
+        mask_data: Tensor
 
-results.show()
+        # Mask and crop the book from the original image
+        cropped_image, bbox = mask_and_crop_book(scaled_image, mask_data, box)
 
-# Loop over each detected book
-for i, (mask_data, box) in enumerate(zip(masks.data, boxes)): # type: ignore
-    mask_data: Tensor
+        # Rotate if it's a spine
+        cropped_image = rotate_if_spine(cropped_image, bbox)
 
-    # Convert mask to a PIL Image
+        # Enhance the cropped image for OCR
+        #enhanced_image = enhance_image(cropped_image)
+
+        # Apply OCR
+        book_title = apply_ocr(cropped_image, reader)
+        book_title = clean_text(book_title)
+
+        # Print and save the results
+        print(f"Book {i + 1} Title: {book_title}")
+
+        cropped_image.save(f"output/book_{i + 1}.png")
+        #enhanced_image.save(f"output/book_{i + 1}_enhanced.png")
+
+def load_and_scale_image(image_path: str, size = (2560, 2560)) -> Image.Image:
+    """Load and scale the image to a specific size."""
+    original_image = Image.open(image_path)
+    scaled_image = scale_image(original_image, size)
+    return scaled_image
+
+def detect_books(image: Image.Image, model: YOLO):
+    """Run YOLO model to detect books in the image and return results."""
+    results = model.predict(image, imgsz=2560, half=True, classes=[73], retina_masks=True, conf=0.35)
+    return results[0]
+
+def mask_and_crop_book(image: Image.Image, mask_data: Tensor, box) -> tuple[Image.Image, tuple[int, int, int, int]]:
+    """Apply mask to isolate the book and crop it using bounding box coordinates."""
     mask = Image.fromarray(mask_data.cpu().numpy().astype("uint8") * 255)
+    masked_image = Image.new("RGB", image.size)
+    masked_image.paste(image, mask=mask)
 
-    # Create a new image for the masked book
-    masked_image = Image.new("RGB", scaled_image.size)
-    masked_image.paste(scaled_image, mask=mask)
-
-    # Crop the image to the bounding box for efficiency
+    # Crop to bounding box
     x1, y1, x2, y2 = map(int, box.xyxy[0])
     cropped_image = masked_image.crop((x1, y1, x2, y2))
+    return cropped_image, (x1, y1, x2, y2)
 
-    # Rotate the image if it's identified as a spine
-    cropped_image = rotate_if_spine(cropped_image, (x1, y1, x2, y2))
+def enhance_image(image: Image.Image) -> Image.Image:
+    """Enhance contrast and sharpness of the image for better OCR results."""
+    image = ImageEnhance.Contrast(image).enhance(2)
+    image = ImageEnhance.Brightness(image).enhance(1.2)
+    image = ImageEnhance.Sharpness(image).enhance(2)
+    #image = adaptive_threshold(image)
+    return image
 
-    # Enhance contrast and sharpness
-    #enhancer = ImageEnhance.Contrast(cropped_image)
-    #cropped_image_enhanced = enhancer.enhance(2)
+def apply_ocr(image: Image.Image, reader: easyocr.Reader) -> str:
+    """Use EasyOCR to extract text from the image."""
+    result = reader.readtext(np.array(image))
 
-    #sharpness_enhancer = ImageEnhance.Sharpness(cropped_image_enhanced)
-    #cropped_image_enhanced = sharpness_enhancer.enhance(2)
+    filtered_results = [res for res in result]
+    book_title = " ".join([res[1] for res in filtered_results])
+    return book_title.strip()
 
-    # Apply OCR to extract text (book title)
-    #book_title: str = pytesseract.image_to_string(cropped_image, lang="eng", config="--psm 7 --oem 3")
+def preprocess_image(image: Image.Image) -> Image.Image:
+    """Enhance the image before detection."""
+    image = ImageEnhance.Contrast(image).enhance(1.5)
+    image = ImageEnhance.Brightness(image).enhance(1.1)
+    return image
 
-    result = reader.readtext(np.array(cropped_image))
-    book_title = " ".join([res[1] for res in result])
+def reduce_noise(image: Image.Image) -> Image.Image:
+    """Apply noise reduction to the image."""
+    image_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    image_cv = cv2.fastNlMeansDenoisingColored(image_cv, None, 10, 10, 7, 21)
+    return Image.fromarray(cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB))
 
-    # Display or print the result
-    print(f"Book {i + 1} Title: {book_title.strip()}")
+def adaptive_threshold(image: Image.Image) -> Image.Image:
+    """Apply adaptive thresholding to the image."""
+     # Convert to grayscale if not already
+    image_cv = np.array(image)
 
-    # Save the cropped image and mask (optional)
-    cropped_image.save(f"output/book_{i + 1}.png")
+    if len(image_cv.shape) == 3:  # Check if image has 3 channels (RGB)
+        image_cv = cv2.cvtColor(image_cv, cv2.COLOR_RGB2GRAY)
+
+    thresh_cv = cv2.adaptiveThreshold(
+        image_cv, 
+        255, 
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY, 
+        11, 
+        2
+    )
+    return Image.fromarray(thresh_cv)
+
+def clean_text(text: str) -> str:
+    """Clean the OCR output text."""
+    text = re.sub(r"[^A-Za-z0-9\s\-\:\'\",\.]", "", text)
+    return text.strip()
+
+if __name__ == "__main__":
+    main()
