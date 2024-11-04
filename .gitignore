@@ -163,3 +163,4 @@ cython_debug/
 
 # Ignore models, since they are too large to be stored in git
 ai/models/*.pt
+ai/output/

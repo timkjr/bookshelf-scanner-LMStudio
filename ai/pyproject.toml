@@ -12,6 +12,8 @@ torch = {version = "^2.5.1+cu124", source = "pytorch-cu124"}
 torchvision = {version = "^0.20.1+cu124", source = "pytorch-cu124"}
 torchaudio = {version = "^2.5.1+cu124", source = "pytorch-cu124"}
 ultralytics = "^8.3.27"
+pytesseract = "^0.3.13"
+easyocr = "^1.7.2"
 
 
 [[tool.poetry.source]]
