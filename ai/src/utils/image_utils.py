@@ -1,3 +1,4 @@
+import base64
 from PIL.Image import Image, Resampling
 from PIL import ImageOps
 
@@ -35,3 +36,15 @@ def rotate_if_spine(image: Image, box: tuple[int, int, int, int], threshold = 2.
         return image.rotate(90, expand=True)
     
     return image
+
+def image_to_base64(file_path: str) -> str:
+    """
+    Convert an image file to a base64 string.
+    Args:
+        file_path (str): The path to the image file.
+    Returns:
+        str: The base64 encoded image string.
+    """
+    with open(file_path, "rb") as img_file:
+        base64_data = base64.b64encode(img_file.read()).decode("utf-8")
+        return f"data:image/png;base64,{base64_data}"

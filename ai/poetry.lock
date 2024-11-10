@@ -236,6 +236,17 @@ docs = ["ipython", "matplotlib", "numpydoc", "sphinx"]
 tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
+name = "diskcache"
+version = "5.6.3"
+description = "Disk Cache -- Disk and file backed persistent cache."
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "diskcache-5.6.3-py3-none-any.whl", hash = "sha256:5e31b2d5fbad117cc363ebaf6b689474db18a1f6438bc82358b024abd4c2ca19"},
+    {file = "diskcache-5.6.3.tar.gz", hash = "sha256:2c3a3fa2743d8535d832ec61c2054a1641f41775aa7c556758a109941e33e4fc"},
+]
+
+[[package]]
 name = "easyocr"
 version = "1.7.2"
 description = "End-to-End Multi-Lingual Optical Character Recognition (OCR) Solution"
@@ -624,6 +635,40 @@ packaging = "*"
 dev = ["changelist (==0.5)"]
 lint = ["pre-commit (==3.7.0)"]
 test = ["pytest (>=7.4)", "pytest-cov (>=4.1)"]
+
+[[package]]
+name = "llama-cpp-python"
+version = "0.2.90"
+description = "Python bindings for the llama.cpp library"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "llama_cpp_python-0.2.90-cp310-cp310-linux_x86_64.whl", hash = "sha256:11cc6644f3ebc5a9e544485931ed7ae69b49ec8a7e036069017067c723d686d9"},
+    {file = "llama_cpp_python-0.2.90-cp310-cp310-win_amd64.whl", hash = "sha256:64187e66920833408d13ebf599d247e462c8ea79108a19335550e5fb3b271925"},
+    {file = "llama_cpp_python-0.2.90-cp311-cp311-linux_x86_64.whl", hash = "sha256:7be6d58f637b8cc1d944dbd9d9ec808216b25a840e982f7ef744a46e52b76df4"},
+    {file = "llama_cpp_python-0.2.90-cp311-cp311-win_amd64.whl", hash = "sha256:6e1277fb272eb08cd6aa6795af23e8d0c8b5b37cd41d928dec4f89b3fb1ca81f"},
+    {file = "llama_cpp_python-0.2.90-cp312-cp312-linux_x86_64.whl", hash = "sha256:7023adb88fb1e3a5bfa3ef3be28cdc9566e3fbc5e9a50e84968a26e1495a55e5"},
+    {file = "llama_cpp_python-0.2.90-cp312-cp312-win_amd64.whl", hash = "sha256:396df5119251ac51dbf330519b829e5a1fab77e6bd2ce9a7814fc388367316e2"},
+    {file = "llama_cpp_python-0.2.90-cp39-cp39-linux_x86_64.whl", hash = "sha256:fe7b945cdc2e59474d0c6df363e266ceb34b267aea56fd7ff5f9d180cda183e9"},
+    {file = "llama_cpp_python-0.2.90-cp39-cp39-win_amd64.whl", hash = "sha256:f7e7d626d8818934cc4c62dc3c5203a5d0bbd46cd7bb965f43a29176340b63f0"},
+]
+
+[package.dependencies]
+diskcache = ">=5.6.1"
+jinja2 = ">=2.11.3"
+numpy = ">=1.20.0"
+typing-extensions = ">=4.5.0"
+
+[package.extras]
+all = ["llama_cpp_python[dev,server,test]"]
+dev = ["black (>=23.3.0)", "httpx (>=0.24.1)", "mkdocs (>=1.4.3)", "mkdocs-material (>=9.1.18)", "mkdocstrings[python] (>=0.22.0)", "pytest (>=7.4.0)", "twine (>=4.0.2)"]
+server = ["PyYAML (>=5.1)", "fastapi (>=0.100.0)", "pydantic-settings (>=2.0.1)", "sse-starlette (>=1.6.1)", "starlette-context (>=0.3.6,<0.4)", "uvicorn (>=0.22.0)"]
+test = ["fastapi (>=0.100.0)", "httpx (>=0.24.1)", "pydantic-settings (>=2.0.1)", "pytest (>=7.4.0)", "scipy (>=1.10)", "sse-starlette (>=1.6.1)", "starlette-context (>=0.3.6,<0.4)"]
+
+[package.source]
+type = "legacy"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cu124"
+reference = "llama-cpp-python-cu124"
 
 [[package]]
 name = "markupsafe"
@@ -2576,4 +2621,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "e840c3be2c9297bd13732eb062b5bccd967af3044317f75a67621bc62d5d72cd"
+content-hash = "594bd36f47e5d76c7e7f6ad475a707e19e468ee2a89c10a178babd930f8ea11e"

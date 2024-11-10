@@ -14,11 +14,18 @@ torchaudio = {version = "^2.5.1+cu124", source = "pytorch-cu124"}
 ultralytics = "^8.3.27"
 easyocr = "^1.7.2"
 transformers = "^4.46.1"
+llama-cpp-python = {version = "^0.2.90", source = "llama-cpp-python-cu124"}
 
 
 [[tool.poetry.source]]
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
+priority = "explicit"
+
+
+[[tool.poetry.source]]
+name = "llama-cpp-python-cu124"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cu124"
 priority = "explicit"
 
 [build-system]
