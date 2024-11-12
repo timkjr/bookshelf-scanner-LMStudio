@@ -16,3 +16,14 @@ def get_image_path(image_file: str) -> str:
         raise FileNotFoundError(f"Image not found: {image_file}")
     
     return image_path
+
+def remove_files(dir_path: str) -> None:
+    """
+    Remove all files in a directory.
+    Args:
+        dir_path (str): The path to the directory.
+    """
+    for file in os.listdir(dir_path):
+        file_path = os.path.join(dir_path, file)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
