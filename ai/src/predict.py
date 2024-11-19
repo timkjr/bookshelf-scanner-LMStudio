@@ -7,6 +7,7 @@ from utils import get_image_path, scale_image, image_to_base64, remove_files
 from PIL import Image, ImageEnhance
 from llama_cpp import Llama
 from llama_cpp.llama_chat_format import Llava15ChatHandler, MoondreamChatHandler
+from typing import AsyncGenerator
 
 class BookPredicter:
     """
@@ -25,13 +26,13 @@ class BookPredicter:
             If there is no author, just the title is fine. 
             If there's no book in the image, please type 'No book'."""
 
-    def predict(self, image_path: str) -> list[str]:
+    async def predict(self, image_path: str) -> AsyncGenerator[str, None]:
         """
-        Predict the title and author of the books in the image.
+        Asynchronously predict the title and author of the books in the image.
         Args:
             image_path (str): The path to the image file.
-        Returns:
-            list[str]: The recognized titles and authors of the books.
+        Yields:
+            str: The recognized titles and authors of the books.
         """
         original_image = Image.open(image_path)
         scaled_image: Image.Image
@@ -53,8 +54,8 @@ class BookPredicter:
         masks, boxes = self._segment_books(enhanced_image, image_filename)
 
         if masks is None or boxes is None:
-            print("No books detected.")
-            return result
+            yield "No books detected."
+            return
 
         # Loop over each detected book
         for i, (mask, box) in enumerate(zip(masks.data, boxes)):  # type: ignore
@@ -74,25 +75,28 @@ class BookPredicter:
         images = os.listdir(self.output_dir)
 
         # Loop over saved images and recognize the book
-        # for image_path in images:
+        for image_path in images:
             
-        #     if not image_path.endswith(".png"):
-        #         continue
+            if not image_path.endswith(".png"):
+                continue
             
-        #     response = self._recognize_book(image_path)
+            try:
+                response = self._recognize_book(image_path)
 
-        #     # Display or print the result
-        #     message_content: str = response["choices"][0]["message"]["content"] # type: ignore
-        #     book_index = int(image_path.split("_")[-1].split(".")[0])
-        #     output = f"Book {book_index}: {message_content.strip()}"
-        #     result.append(output)
-        #     print(output)
+                # Display or print the result
+                message_content: str = response["choices"][0]["message"]["content"] # type: ignore
+                book_index = int(image_path.split("_")[-1].split(".")[0])
+                output = f"Book {book_index}: {message_content.strip()}"
+                result.append(output)
+                print(output)
+
+                yield output
+            except Exception as e:
+                yield f"Error processing book {image_path}: {str(e)}"
 
         # Save the outputs to a text file
         with open(f"{self.output_dir}/result.txt", "w") as f:
             f.write("\n".join(result))
-
-        return result
     
     def _init_yolo(self) -> None:
         """
