@@ -1,7 +1,5 @@
-import asyncio
 import os
 import cv2
-import re
 import numpy as np
 import logging
 from ultralytics import YOLO
@@ -9,7 +7,7 @@ from ultralytics.engine.results import Masks, Boxes
 from PIL import Image, ImageEnhance
 from llama_cpp import Llama
 from llama_cpp.llama_chat_format import Llava15ChatHandler, MoondreamChatHandler
-from typing import AsyncGenerator
+from typing import Generator
 from torch import Tensor
 from .utils import scale_image, image_to_base64, remove_files
 
@@ -34,32 +32,31 @@ class BookPredictor:
             If there is no author, just the title is fine. 
             If there's no book in the image, please type 'No book'."""
 
-    async def predict(self, image_path: str) -> tuple[str | None, AsyncGenerator[str, None]]:
+    def predict(self, image_path: str) -> tuple[str, Generator[str, None, None]] | None:
         """
         Asynchronously predict the title and author of the books in the image.
         Args:
             image_path (str): The path to the image file.
         Yields:
-            tuple[str | None, AsyncGenerator[str, None]]: 
-            A tuple containing the YOLO segmented image (as base64 string) and an async generator of results.
-            If no books are detected, the YOLO segmented image will be None.
+            tuple[str, Generator[str, None]] | None: 
+            A tuple containing the YOLO segmented image (as base64 string) and a generator of results.
+            If no books are detected, returns None.
         """
-        loop = asyncio.get_event_loop()
 
         # Run segmentation and get the YOLO output (segmented image in base64)
-        segmentation_result = await loop.run_in_executor(None, self._segment_and_prepare_books, image_path)
+        segmentation_result = self._segment_and_prepare_books(image_path)
 
         if segmentation_result is None:
             self.logger.info("No books detected.")
-            return None, None
+            return None
         
         yolo_output, cropped_books = segmentation_result
 
-        # Define the async generator for the prediction results
-        async def result_generator() -> AsyncGenerator[str, None]:
+        # Define the generator for the prediction results
+        def result_generator() -> Generator[str, None, None]:
             for i, image_file in enumerate(cropped_books):
                 try:
-                    response = await loop.run_in_executor(None, self._recognize_book, image_file)
+                    response = self._recognize_book(image_file)
                     output = f"Book {i + 1}: {response}"
                     self.logger.info(output)
                     yield output
@@ -146,7 +143,7 @@ class BookPredictor:
         masks, boxes = segmentation_mask_data
         
         # Loop over each detected book and save the cropped image in the output directory
-        for i, (mask, box) in enumerate(zip(masks.data, boxes)):
+        for i, (mask, box) in enumerate(zip(masks.data, boxes)): # type: ignore
             mask: Tensor
             box: Boxes
             
@@ -224,7 +221,7 @@ class BookPredictor:
         image_cv = cv2.fastNlMeansDenoisingColored(image_cv, None, 10, 10, 7, 21)
         return Image.fromarray(cv2.cvtColor(image_cv, cv2.COLOR_BGR2RGB))
     
-    def _mask_and_crop(self, image: Image.Image, mask_data: Masks, box_data: Boxes) -> Image.Image:
+    def _mask_and_crop(self, image: Image.Image, mask_data: Tensor, box_data: Boxes) -> Image.Image:
         """
         Mask and crop the image using the mask and bounding box.
         Args:

@@ -32,7 +32,14 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        prediction_result = await book_predictor.predict(temp_image_path)
+        prediction_result = book_predictor.predict(temp_image_path)
+
+        if not prediction_result:
+            return StreamingResponse(
+                iter([ResultWithData.fail("No books detected.").model_dump_json(by_alias=True) + "\n"]),
+                media_type="application/json"
+            )
+
         segmented_output, result_generator = prediction_result
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
@@ -61,16 +68,13 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
                 return
 
             # Then, send the prediction results
-            async for result in result_generator:
+            for result in result_generator:
                 if await request.is_disconnected():
                     client_disconnected = True
                     break
 
                 prediction_result = ResultWithData[str].succeed(result)
-
-                logger.info(f"Sent prediction result: {result}")
                 yield prediction_result.model_dump_json(by_alias=True) + "\n"
-                await asyncio.sleep(0)
         except Exception as e:
             error_result = ResultWithData.fail(str(e))
             logger.error(f"An error occurred during streaming: {str(e)}")
