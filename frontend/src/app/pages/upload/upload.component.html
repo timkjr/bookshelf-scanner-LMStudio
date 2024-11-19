@@ -1,8 +1,8 @@
 <div class="container">
   <h1>Book Recognizer</h1>
-  <form (ngSubmit)="onSubmit()" #uploadForm="ngForm">
-    <input type="file" (change)="onFileSelected($event)" accept="image/*" />
-    <button type="submit" [disabled]="!selectedFile() || isProcessing()">Upload</button>
+  <form [formGroup]="uploadForm">
+    <input formControlName="image" type="file" (change)="onFileSelected($event)" accept="image/*" />
+    <button type="submit" [disabled]="!selectedFile() || isProcessing()" onclick="onSubmit()">Upload</button>
     <button type="button" (click)="cancelProcess()" [disabled]="!isProcessing()">Cancel</button>
   </form>
 
@@ -10,12 +10,12 @@
     <h2>Results:</h2>
     <ul>
       @for (result of results(); track result) {
-        <li>{{result}}</li>
+        <li>{{ result }}</li>
       }
     </ul>
   }
 
   @if (errorMessage()) {
-    <p class="error">{{errorMessage()}}</p>
+    <p class="error">{{ errorMessage() }}</p>
   }
 </div>
