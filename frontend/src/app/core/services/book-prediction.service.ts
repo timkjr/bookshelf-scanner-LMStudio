@@ -21,7 +21,7 @@ export class BookPredictionService implements OnDestroy {
     return new Observable<Result<string>>((observer) => {
       this.abortController = new AbortController();
 
-      fetch(`${this.apiUrl}/predict}`, {
+      fetch(`${this.apiUrl}/predict`, {
         method: "POST",
         body: formData,
         signal: this.abortController.signal,

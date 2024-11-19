@@ -51,8 +51,6 @@ export class UploadComponent implements OnDestroy {
   }
 
   submitForm() {
-    console.log("selectedFile", this.selectedFile());
-
     if (!this.selectedFile()) {
       return;
     }
@@ -70,8 +68,12 @@ export class UploadComponent implements OnDestroy {
               this.predictedImageSrc.set(result.data);
             } else {
               // Subsequent success responses are the results
-              this.results().push(result.data);
+              this.results.update((results) => [...results, result.data!]);
             }
+          } else {
+            this.errorMessage.set(result.error ?? "Unknown error");
+            this.isProcessing.set(false);
+            this.cancelProcess();
           }
         },
         error: (error) => {

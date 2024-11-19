@@ -1,6 +1,7 @@
 import asyncio
 import os
 import cv2
+import re
 import numpy as np
 import logging
 from ultralytics import YOLO
@@ -9,6 +10,7 @@ from PIL import Image, ImageEnhance
 from llama_cpp import Llama
 from llama_cpp.llama_chat_format import Llava15ChatHandler, MoondreamChatHandler
 from typing import AsyncGenerator
+from torch import Tensor
 from .utils import scale_image, image_to_base64, remove_files
 
 class BookPredictor:
@@ -26,7 +28,7 @@ class BookPredictor:
 
     def __init__(self) -> None:
         # Ensure the output directory exists
-        os.makedirs(self.output_dir, exist_ok=True)
+        os.makedirs(f"{self.output_dir}/segmentation", exist_ok=True)
         
         self.prompt = """Recognize the title and author of this book in the format 'Title by Author'. 
             If there is no author, just the title is fine. 
@@ -45,26 +47,24 @@ class BookPredictor:
         loop = asyncio.get_event_loop()
 
         # Run segmentation and get the YOLO output (segmented image in base64)
-        yolo_output = await loop.run_in_executor(None, self._segment_and_prepare_books, image_path)
+        segmentation_result = await loop.run_in_executor(None, self._segment_and_prepare_books, image_path)
+
+        if segmentation_result is None:
+            self.logger.info("No books detected.")
+            return None, None
         
+        yolo_output, cropped_books = segmentation_result
+
         # Define the async generator for the prediction results
         async def result_generator() -> AsyncGenerator[str, None]:
-            images = os.listdir(self.output_dir)
-
-            for image_file in images:
-                if not image_file.endswith(".png"):
-                    continue
-
-                image_full_path = os.path.join(self.output_dir, image_file)
-
+            for i, image_file in enumerate(cropped_books):
                 try:
-                    response = await loop.run_in_executor(None, self._recognize_book, image_full_path)
-                    message_content: str = response["choices"][0]["message"]["content"].strip() # type: ignore
-                    book_index = int(image_file.split("_")[-1].split(".")[0])
-                    output = f"Book {book_index}: {message_content}"
+                    response = await loop.run_in_executor(None, self._recognize_book, image_file)
+                    output = f"Book {i + 1}: {response}"
                     self.logger.info(output)
                     yield output
                 except Exception as e:
+                    self.logger.error(f"Error processing book {image_file}: {str(e)}")
                     yield f"Error processing book {image_file}: {str(e)}"
 
         return yolo_output, result_generator()
@@ -74,6 +74,8 @@ class BookPredictor:
         Remove all files in the output directory.
         """
         remove_files(self.output_dir)
+        remove_files(f"{self.output_dir}/segmentation")
+        self.logger.info("Output directory cleaned up.")
     
     def _init_yolo(self) -> None:
         """
@@ -107,14 +109,15 @@ class BookPredictor:
         self.llm_initialized = True
         self.logger.info("Moondream2 model initialized.")
 
-    def _segment_and_prepare_books(self, image_path: str) -> str | None:
+    def _segment_and_prepare_books(self, image_path: str) -> tuple[str, list[str]] | None:
         """
         Segments the image using YOLO, processes each detected book, saves the segmented image,
         and returns it as a base64 string.
         Args:
             image_path (str): Path to the image file.
         Returns:
-            str: Base64 encoded segmented image if books are detected, else None.
+            tuple[str, list[str]] | None: 
+            Base64 encoded segmented image and list of cropped books image paths if books are detected, else None.
         """
         original_image = Image.open(image_path)
         scaled_image: Image.Image
@@ -132,18 +135,21 @@ class BookPredictor:
         enhanced_image = self._reduce_noise(enhanced_image)
 
         image_filename = os.path.basename(image_path)
+        segmentation_mask_data = self._segment_books(enhanced_image, image_filename)
 
-        masks, boxes = self._segment_books(enhanced_image, image_filename)
-
-        if masks is None or boxes is None or len(masks.data) == 0:
+        if not segmentation_mask_data:
             # No books detected
             return None
         
+        # Store paths of cropped books
+        cropped_books: list[str] = []
+        masks, boxes = segmentation_mask_data
+        
         # Loop over each detected book and save the cropped image in the output directory
-        for i, (mask, box) in enumerate(zip(masks.data, boxes)):  # type: ignore
-            mask: Masks
+        for i, (mask, box) in enumerate(zip(masks.data, boxes)):
+            mask: Tensor
             box: Boxes
-
+            
             cropped_image = self._mask_and_crop(enhanced_image, mask, box)
 
             # Rotate the image if it's identified as a spine
@@ -152,15 +158,17 @@ class BookPredictor:
 
             # Save the cropped image and mask
             cropped_image.save(cropped_image_path)
+            cropped_books.append(cropped_image_path)
 
         # Save the segmented image in the output/segmentation directory
         segmented_image_path = os.path.join(self.output_dir, "segmentation", image_filename)
         self.logger.info(f"Segmented image saved to {segmented_image_path}")
+        segmented_image_encoded = image_to_base64(segmented_image_path)
 
         # Convert the segmented image to base64
-        return image_to_base64(segmented_image_path)
+        return segmented_image_encoded, cropped_books
     
-    def _segment_books(self, image: Image.Image, image_filename: str) -> tuple[Masks | None, Boxes | None]:
+    def _segment_books(self, image: Image.Image, image_filename: str) -> tuple[Masks, Boxes] | None:
         """
         Segment the books in the image using the YOLO model.
         Args:
@@ -177,7 +185,7 @@ class BookPredictor:
             half=True,
             classes=[73],
             retina_masks=True,
-            conf=0.35,
+            conf=0.25,
         )
 
         results = results[0]
@@ -185,6 +193,10 @@ class BookPredictor:
         boxes = results.boxes
         
         results.save(f"{self.output_dir}/segmentation/{image_filename}")
+
+        if not masks or not boxes:
+            return None
+
         return masks, boxes
 
     def _enhance_image(self, image: Image.Image) -> Image.Image:

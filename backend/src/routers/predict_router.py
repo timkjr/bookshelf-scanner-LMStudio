@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import shutil
@@ -33,9 +32,12 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        segmented_output, result_generator = await book_predictor.predict(temp_image_path)
+        prediction_result = await book_predictor.predict(temp_image_path)
+        segmented_output, result_generator = prediction_result
     except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
         error_result = ResultWithData.fail(str(e))
+
         return StreamingResponse(
             iter([error_result.model_dump_json(by_alias=True) + "\n"]),
             media_type="application/json"
@@ -71,7 +73,7 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
                 await asyncio.sleep(0)
         except Exception as e:
             error_result = ResultWithData.fail(str(e))
-            logger.error(f"An error occurred: {str(e)}")
+            logger.error(f"An error occurred during streaming: {str(e)}")
             yield error_result.model_dump_json(by_alias=True) + "\n"
         finally:
             if client_disconnected:
@@ -79,6 +81,5 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
 
             # Clean up output directory
             book_predictor.cleanup()
-            logger.info("Cleaned up output directory")
 
     return StreamingResponse(stream_generator(), media_type="application/json")
