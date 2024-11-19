@@ -1,7 +1,7 @@
 import {Component, OnDestroy, signal} from "@angular/core";
 import {FormControl, FormGroup, ReactiveFormsModule} from "@angular/forms";
 import {Subscription} from "rxjs";
-import {BookPredictionService} from "@/core";
+import {BookPredictionService} from "@/core/services";
 
 @Component({
   selector: "app-upload",
@@ -13,10 +13,12 @@ import {BookPredictionService} from "@/core";
 export class UploadComponent implements OnDestroy {
   private predictionSubscription: Subscription | null = null;
   public readonly uploadForm: FormGroup<UploadForm>;
-  public selectedFile = signal<File | null>(null);
-  public results = signal<string[]>([]);
-  public errorMessage = signal("");
-  public isProcessing = signal(false);
+  public readonly selectedFile = signal<File | null>(null);
+  public readonly results = signal<string[]>([]);
+  public readonly errorMessage = signal("");
+  public readonly isProcessing = signal(false);
+  public readonly uploadedImageSrc = signal<string | null>(null);
+  public readonly predictedImageSrc = signal<string | null>(null);
 
   constructor(private bookPredictionService: BookPredictionService) {
     this.uploadForm = new FormGroup<UploadForm>({
@@ -30,33 +32,56 @@ export class UploadComponent implements OnDestroy {
     }
   }
 
-  onFileSelected(event: Event) {
+  handleFileSelected(event: Event) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.selectedFile = (event.target as any).files[0] ?? null;
+    this.selectedFile.set((event.target as any).files[0] ?? null);
     this.results.set([]);
     this.errorMessage.set("");
     this.isProcessing.set(false);
+
+    // Read the selected file and set the image preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.uploadedImageSrc.set(reader.result as string);
+    };
+
+    if (this.selectedFile()) {
+      reader.readAsDataURL(this.selectedFile()!);
+    }
   }
 
-  onSubmit() {
+  submitForm() {
+    console.log("selectedFile", this.selectedFile());
+
     if (!this.selectedFile()) {
       return;
     }
 
     this.isProcessing.set(true);
 
-    this.predictionSubscription = this.bookPredictionService.startPrediction(this.selectedFile()!).subscribe({
-      next: (result) => {
-        this.results().push(result);
-      },
-      error: (error) => {
-        this.errorMessage.set(error);
-        this.isProcessing.set(false);
-      },
-      complete: () => {
-        this.isProcessing.set(false);
-      },
-    });
+    this.predictionSubscription = this.bookPredictionService
+      .startPrediction(this.selectedFile()!)
+      .subscribe({
+        next: (result) => {
+          if (result.success && result.data) {
+            // Determine the type based on the data (image or result)
+            if (this.predictedImageSrc() == null) {
+              // First success response is the image
+              this.predictedImageSrc.set(result.data);
+            } else {
+              // Subsequent success responses are the results
+              this.results().push(result.data);
+            }
+          }
+        },
+        error: (error) => {
+          this.errorMessage.set(error);
+          this.isProcessing.set(false);
+        },
+        complete: () => {
+          this.isProcessing.set(false);
+        },
+      });
   }
 
   cancelProcess() {

@@ -1,12 +1,12 @@
 import asyncio
 import os
 import shutil
-from typing import AsyncGenerator
 import uuid
 from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from bookscanner_ai import BookPredictor
+from .models import ResultWithData
 
 # Ensure the output directory exists
 os.makedirs("output", exist_ok=True)
@@ -38,22 +38,43 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
     with open(temp_image_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Create an async generator for the streaming response
-    async def stream_generator() -> AsyncGenerator[str, None]:
-        loop = asyncio.get_event_loop()
+    try:
+        segmented_output, result_generator = await book_predictor.predict(temp_image_path)
+    except Exception as e:
+        error_result = ResultWithData.fail(str(e))
+        return StreamingResponse(
+            iter([error_result.model_dump_json(by_alias=True) + "\n"]),
+            media_type="application/json"
+        )
+
+    async def stream_generator():
         client_disconnected = False
         try:
-            # Run the predict method in a separate thread to avoid blocking
-            book_predictions = await loop.run_in_executor(None, book_predictor.predict, temp_image_path)
+            # First, send the segmented image
+            if segmented_output:
+                image_result = ResultWithData[str].succeed(segmented_output)
+            else:
+                image_result = ResultWithData[str].fail("No books detected.")
             
-            for result in book_predictions:
+            yield image_result.model_dump_json(by_alias=True) + "\n"
+
+            # If no books detected, stop processing
+            if not segmented_output:
+                return
+
+            # Then, send the prediction results
+            async for result in result_generator:
                 if await request.is_disconnected():
                     client_disconnected = True
-                    break  # Stop processing if client disconnected
-                yield f"{result}\n"
-                await asyncio.sleep(0)  # Yield control to the event loop
+                    break
+
+                prediction_result = ResultWithData[str].succeed(result)
+
+                yield prediction_result.model_dump_json(by_alias=True) + "\n"
+                await asyncio.sleep(0)
         except Exception as e:
-            yield f"Error: {str(e)}\n"
+            error_result = ResultWithData.fail(str(e))
+            yield error_result.model_dump_json(by_alias=True) + "\n"
         finally:
             if client_disconnected:
                 print("Client disconnected. Cleaning up...")
@@ -61,5 +82,8 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
             # Remove temporary files
             if os.path.exists(temp_image_path):
                 os.remove(temp_image_path)
+                
+            # Clean up output directory
+            shutil.rmtree(book_predictor.output_dir, ignore_errors=True)
 
-    return StreamingResponse(stream_generator(), media_type="text/plain")
+    return StreamingResponse(stream_generator(), media_type="application/json")

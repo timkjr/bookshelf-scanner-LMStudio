@@ -1,21 +1,67 @@
 <div class="container">
   <h1>Book Recognizer</h1>
-  <form [formGroup]="uploadForm">
-    <input formControlName="image" type="file" (change)="onFileSelected($event)" accept="image/*" />
-    <button type="submit" [disabled]="!selectedFile() || isProcessing()" onclick="onSubmit()">Upload</button>
-    <button type="button" (click)="cancelProcess()" [disabled]="!isProcessing()">Cancel</button>
+  <form [formGroup]="uploadForm" (ngSubmit)="submitForm()">
+    <input
+      formControlName="image"
+      type="file"
+      (change)="handleFileSelected($event)"
+      accept="image/*"
+    />
+    <button type="submit" [disabled]="!selectedFile() || isProcessing()">
+      Upload
+    </button>
+    <button
+      type="button"
+      (click)="cancelProcess()"
+      [disabled]="!isProcessing()"
+    >
+      Cancel
+    </button>
   </form>
 
+  @if (isProcessing()) {
+    <div>
+      <h4>Processing...</h4>
+      <p>Uploading and processing the image...</p>
+    </div>
+  }
+
+  @if (uploadedImageSrc()) {
+    <div>
+      <h4>Uploaded image:</h4>
+      <img
+        [src]="uploadedImageSrc()"
+        alt="Uploaded image preview"
+        style="max-width: 100%; height: auto"
+      />
+    </div>
+  }
+
+  @if (predictedImageSrc()) {
+    <div>
+      <h4>Predicted image:</h4>
+      <img
+        [src]="predictedImageSrc()"
+        alt="Predicted image preview"
+        style="max-width: 100%; height: auto"
+      />
+    </div>
+  }
+
   @if (results.length > 0) {
-    <h2>Results:</h2>
-    <ul>
-      @for (result of results(); track result) {
-        <li>{{ result }}</li>
-      }
-    </ul>
+    <div>
+      <h2>Results:</h2>
+      <ul>
+        @for (result of results(); track result) {
+          <li>{{ result }}</li>
+        }
+      </ul>
+    </div>
   }
 
   @if (errorMessage()) {
-    <p class="error">{{ errorMessage() }}</p>
+    <div>
+      <p class="error">{{ errorMessage() }}</p>
+    </div>
   }
 </div>

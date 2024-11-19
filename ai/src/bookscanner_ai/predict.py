@@ -1,3 +1,4 @@
+import asyncio
 import os
 import cv2
 import numpy as np
@@ -7,7 +8,7 @@ from PIL import Image, ImageEnhance
 from llama_cpp import Llama
 from llama_cpp.llama_chat_format import Llava15ChatHandler, MoondreamChatHandler
 from typing import AsyncGenerator
-from .utils import get_image_path, scale_image, image_to_base64, remove_files
+from .utils import scale_image, image_to_base64, remove_files
 
 class BookPredictor:
     """
@@ -26,77 +27,41 @@ class BookPredictor:
             If there is no author, just the title is fine. 
             If there's no book in the image, please type 'No book'."""
 
-    async def predict(self, image_path: str) -> AsyncGenerator[str, None]:
+    async def predict(self, image_path: str) -> tuple[str | None, AsyncGenerator[str, None]]:
         """
         Asynchronously predict the title and author of the books in the image.
         Args:
             image_path (str): The path to the image file.
         Yields:
-            str: The recognized titles and authors of the books.
+            tuple[str | None, AsyncGenerator[str, None]]: 
+            A tuple containing the YOLO segmented image (as base64 string) and an async generator of results.
+            If no books are detected, the YOLO segmented image will be None.
         """
-        original_image = Image.open(image_path)
-        scaled_image: Image.Image
+        loop = asyncio.get_event_loop()
 
-        # Scale the image if it's too large
-        if original_image.size[0] > 2560 or original_image.size[1] > 2560:
-            scaled_image = scale_image(original_image, (2560, 2560))
-        else:
-            scaled_image = original_image
-            # Rotate if image in landscape
-            if scaled_image.width > scaled_image.height:
-               scaled_image = scaled_image.rotate(-90, expand=True)
+        # Run segmentation and get the YOLO output (segmented image in base64)
+        yolo_output = await loop.run_in_executor(None, self._segment_and_prepare_books, image_path)
         
-        enhanced_image = self._enhance_image(scaled_image)
-        enhanced_image = self._reduce_noise(enhanced_image)
+        # Define the async generator for the prediction results
+        async def result_generator() -> AsyncGenerator[str, None]:
+            images = os.listdir(self.output_dir)
 
-        result: list[str] = []
-        image_filename = os.path.basename(image_path)
-        masks, boxes = self._segment_books(enhanced_image, image_filename)
+            for image_file in images:
+                if not image_file.endswith(".png"):
+                    continue
 
-        if masks is None or boxes is None:
-            yield "No books detected."
-            return
+                image_full_path = os.path.join(self.output_dir, image_file)
 
-        # Loop over each detected book
-        for i, (mask, box) in enumerate(zip(masks.data, boxes)):  # type: ignore
-            mask: Masks
-            box: Boxes
+                try:
+                    response = await loop.run_in_executor(None, self._recognize_book, image_full_path)
+                    message_content: str = response["choices"][0]["message"]["content"].strip() # type: ignore
+                    book_index = int(image_file.split("_")[-1].split(".")[0])
+                    output = f"Book {book_index}: {message_content}"
+                    yield output
+                except Exception as e:
+                    yield f"Error processing book {image_file}: {str(e)}"
 
-            cropped_image = self._mask_and_crop(enhanced_image, mask, box)
-
-            # Rotate the image if it's identified as a spine
-            cropped_image = self._rotate_if_spine(cropped_image, box)
-            output_image_path = os.path.abspath(f"{self.output_dir}/book_{i + 1}.png")
-
-            # Save the cropped image and mask (optional)
-            cropped_image.save(output_image_path)
-
-        # Get the list of saved images in the output directory
-        images = os.listdir(self.output_dir)
-
-        # Loop over saved images and recognize the book
-        for image_path in images:
-            
-            if not image_path.endswith(".png"):
-                continue
-            
-            try:
-                response = self._recognize_book(image_path)
-
-                # Display or print the result
-                message_content: str = response["choices"][0]["message"]["content"] # type: ignore
-                book_index = int(image_path.split("_")[-1].split(".")[0])
-                output = f"Book {book_index}: {message_content.strip()}"
-                result.append(output)
-                print(output)
-
-                yield output
-            except Exception as e:
-                yield f"Error processing book {image_path}: {str(e)}"
-
-        # Save the outputs to a text file
-        with open(f"{self.output_dir}/result.txt", "w") as f:
-            f.write("\n".join(result))
+        return yolo_output, result_generator()
     
     def _init_yolo(self) -> None:
         """
@@ -127,6 +92,58 @@ class BookPredictor:
             n_ctx=2048,
         )
         self.llm_initialized = True
+
+    def _segment_and_prepare_books(self, image_path: str) -> str | None:
+        """
+        Segments the image using YOLO, processes each detected book, saves the segmented image,
+        and returns it as a base64 string.
+        Args:
+            image_path (str): Path to the image file.
+        Returns:
+            str: Base64 encoded segmented image if books are detected, else None.
+        """
+        original_image = Image.open(image_path)
+        scaled_image: Image.Image
+
+        # Scale the image if it's too large
+        if original_image.size[0] > 2560 or original_image.size[1] > 2560:
+            scaled_image = scale_image(original_image, (2560, 2560))
+        else:
+            scaled_image = original_image
+            # Rotate if image in landscape
+            if scaled_image.width > scaled_image.height:
+                scaled_image = scaled_image.rotate(-90, expand=True)
+
+        enhanced_image = self._enhance_image(scaled_image)
+        enhanced_image = self._reduce_noise(enhanced_image)
+
+        image_filename = os.path.basename(image_path)
+
+        masks, boxes = self._segment_books(enhanced_image, image_filename)
+
+        if masks is None or boxes is None or len(masks.data) == 0:
+            # No books detected
+            return None
+        
+        # Loop over each detected book and save the cropped image in the output directory
+        for i, (mask, box) in enumerate(zip(masks.data, boxes)):  # type: ignore
+            mask: Masks
+            box: Boxes
+
+            cropped_image = self._mask_and_crop(enhanced_image, mask, box)
+
+            # Rotate the image if it's identified as a spine
+            cropped_image = self._rotate_if_spine(cropped_image, box)
+            cropped_image_path = os.path.abspath(f"{self.output_dir}/book_{i + 1}.png")
+
+            # Save the cropped image and mask
+            cropped_image.save(cropped_image_path)
+
+        # Save the segmented image in the output/segmentation directory
+        segmented_image_path = os.path.join(self.output_dir, "segmentation", image_filename)
+
+        # Convert the segmented image to base64
+        return image_to_base64(segmented_image_path)
     
     def _segment_books(self, image: Image.Image, image_filename: str) -> tuple[Masks | None, Boxes | None]:
         """
@@ -255,8 +272,3 @@ class BookPredictor:
         Remove all files in the output directory.
         """
         remove_files(self.output_dir)
-    
-if __name__ == "__main__":
-    book_predictor = BookPredictor()
-    image_path = get_image_path("img_1.jpg")
-    book_predictor.predict(image_path)
