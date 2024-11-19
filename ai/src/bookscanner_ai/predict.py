@@ -3,13 +3,13 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 from ultralytics.engine.results import Masks, Boxes
-from utils import get_image_path, scale_image, image_to_base64, remove_files
 from PIL import Image, ImageEnhance
 from llama_cpp import Llama
 from llama_cpp.llama_chat_format import Llava15ChatHandler, MoondreamChatHandler
 from typing import AsyncGenerator
+from .utils import get_image_path, scale_image, image_to_base64, remove_files
 
-class BookPredicter:
+class BookPredictor:
     """
     A class to predict the title and author of books in an image.
     """
@@ -257,6 +257,6 @@ class BookPredicter:
         remove_files(self.output_dir)
     
 if __name__ == "__main__":
-    book_predictor = BookPredicter()
+    book_predictor = BookPredictor()
     image_path = get_image_path("img_1.jpg")
     book_predictor.predict(image_path)

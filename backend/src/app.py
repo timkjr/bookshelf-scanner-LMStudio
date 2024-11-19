@@ -6,12 +6,12 @@ import uuid
 from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from ...ai.src.predict import BookPredicter
+from bookscanner_ai import BookPredictor
 
 # Ensure the output directory exists
 os.makedirs("output", exist_ok=True)
 
-book_predictor = BookPredicter()
+book_predictor = BookPredictor()
 app = FastAPI()
 
 app.add_middleware(
