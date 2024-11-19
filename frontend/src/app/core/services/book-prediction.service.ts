@@ -6,7 +6,7 @@ import {Result} from "@/core/models";
   providedIn: "root",
 })
 export class BookPredictionService implements OnDestroy {
-  private apiUrl = "http://localhost:8000/predict";
+  private apiUrl = "http://localhost:8000/api";
   private abortController: AbortController | null = null;
 
   ngOnDestroy() {
@@ -21,7 +21,7 @@ export class BookPredictionService implements OnDestroy {
     return new Observable<Result<string>>((observer) => {
       this.abortController = new AbortController();
 
-      fetch(this.apiUrl, {
+      fetch(`${this.apiUrl}/predict}`, {
         method: "POST",
         body: formData,
         signal: this.abortController.signal,
