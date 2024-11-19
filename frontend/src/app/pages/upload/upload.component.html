@@ -43,25 +43,27 @@
     </div>
   }
 
-  @if (predictedImageSrc()) {
-    <div>
-      <h4>Predicted image:</h4>
-      <img
-        [src]="predictedImageSrc()"
-        alt="Predicted image preview"
-        style="max-width: 100%; height: auto"
-      />
-    </div>
-  }
+  <div class="images-container">
+    @if (uploadedImageSrc()) {
+      <div>
+        <h4>Uploaded image:</h4>
+        <img
+          class="image"
+          [src]="uploadedImageSrc()"
+          alt="Uploaded image preview"
+        />
+      </div>
+    }
 
-  @if (uploadedImageSrc()) {
-    <div>
-      <h4>Uploaded image:</h4>
-      <img
-        [src]="uploadedImageSrc()"
-        alt="Uploaded image preview"
-        style="max-width: 100%; height: auto"
-      />
-    </div>
-  }
+    @if (predictedImageSrc()) {
+      <div>
+        <h4>Predicted image:</h4>
+        <img
+          class="image"
+          [src]="predictedImageSrc()"
+          alt="Predicted image preview"
+        />
+      </div>
+    }
+  </div>
 </div>

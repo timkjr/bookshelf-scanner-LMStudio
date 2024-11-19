@@ -1,5 +1,5 @@
 import {Injectable, OnDestroy} from "@angular/core";
-import {Observable, finalize} from "rxjs";
+import {Observable} from "rxjs";
 import {Result} from "@/core/models";
 
 @Injectable({
