@@ -2,6 +2,7 @@ import asyncio
 import os
 import cv2
 import numpy as np
+import logging
 from ultralytics import YOLO
 from ultralytics.engine.results import Masks, Boxes
 from PIL import Image, ImageEnhance
@@ -21,8 +22,12 @@ class BookPredictor:
     output_dir = os.path.abspath("output")
     yolo_initialized = False
     llm_initialized = False
+    logger = logging.getLogger()
 
     def __init__(self) -> None:
+        # Ensure the output directory exists
+        os.makedirs(self.output_dir, exist_ok=True)
+        
         self.prompt = """Recognize the title and author of this book in the format 'Title by Author'. 
             If there is no author, just the title is fine. 
             If there's no book in the image, please type 'No book'."""
@@ -57,11 +62,18 @@ class BookPredictor:
                     message_content: str = response["choices"][0]["message"]["content"].strip() # type: ignore
                     book_index = int(image_file.split("_")[-1].split(".")[0])
                     output = f"Book {book_index}: {message_content}"
+                    self.logger.info(output)
                     yield output
                 except Exception as e:
                     yield f"Error processing book {image_file}: {str(e)}"
 
         return yolo_output, result_generator()
+    
+    def cleanup(self) -> None:
+        """
+        Remove all files in the output directory.
+        """
+        remove_files(self.output_dir)
     
     def _init_yolo(self) -> None:
         """
@@ -72,6 +84,7 @@ class BookPredictor:
 
         self.yolo_model = YOLO("models/yolo11x-seg.pt", task="segment")
         self.yolo_initialized = True
+        self.logger.info("YOLO model initialized.")
 
     def _init_llm(self) -> None:
         """
@@ -92,6 +105,7 @@ class BookPredictor:
             n_ctx=2048,
         )
         self.llm_initialized = True
+        self.logger.info("Moondream2 model initialized.")
 
     def _segment_and_prepare_books(self, image_path: str) -> str | None:
         """
@@ -141,6 +155,7 @@ class BookPredictor:
 
         # Save the segmented image in the output/segmentation directory
         segmented_image_path = os.path.join(self.output_dir, "segmentation", image_filename)
+        self.logger.info(f"Segmented image saved to {segmented_image_path}")
 
         # Convert the segmented image to base64
         return image_to_base64(segmented_image_path)
@@ -266,9 +281,3 @@ class BookPredictor:
             return image.rotate(90, expand=True)
         
         return image
-    
-    def _cleanup(self) -> None:
-        """
-        Remove all files in the output directory.
-        """
-        remove_files(self.output_dir)

@@ -1,28 +1,20 @@
+
 import asyncio
-import os
+import logging
 import shutil
-import uuid
-from fastapi import FastAPI, File, Request, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
+import time
+from fastapi import APIRouter, File, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from bookscanner_ai import BookPredictor
-from .models import ResultWithData
+from src.models import ResultWithData
 
-# Ensure the output directory exists
-os.makedirs("output", exist_ok=True)
+predict_router = APIRouter(prefix="/predict", tags=["predict"])
+router = predict_router
 
+# Initialize the BookPredictor
 book_predictor = BookPredictor()
-app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.post("/predict")
+@router.post("/")
 async def predict(request: Request, file: UploadFile = File(...)) -> StreamingResponse:
     """
     Predict the title and author of the books in the uploaded image file.
@@ -32,8 +24,10 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
     Returns:
         StreamingResponse: The predicted titles and authors of the books.
     """
+    logger = logging.getLogger()
+
     # Save the uploaded file to a temporary location
-    temp_image_path = f"output/temp_{uuid.uuid4()}_{file.filename}"
+    temp_image_path = f"{book_predictor.output_dir}/temp_{int(time.time())}_{file.filename}"
 
     with open(temp_image_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -56,10 +50,12 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
             else:
                 image_result = ResultWithData[str].fail("No books detected.")
             
+            logger.info("Sent segmented image")
             yield image_result.model_dump_json(by_alias=True) + "\n"
 
             # If no books detected, stop processing
             if not segmented_output:
+                logger.info("No books detected. Stopping processing.")
                 return
 
             # Then, send the prediction results
@@ -70,20 +66,19 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
 
                 prediction_result = ResultWithData[str].succeed(result)
 
+                logger.info(f"Sent prediction result: {result}")
                 yield prediction_result.model_dump_json(by_alias=True) + "\n"
                 await asyncio.sleep(0)
         except Exception as e:
             error_result = ResultWithData.fail(str(e))
+            logger.error(f"An error occurred: {str(e)}")
             yield error_result.model_dump_json(by_alias=True) + "\n"
         finally:
             if client_disconnected:
-                print("Client disconnected. Cleaning up...")
+                logger.info("Client disconnected. Stopping processing.")
 
-            # Remove temporary files
-            if os.path.exists(temp_image_path):
-                os.remove(temp_image_path)
-                
             # Clean up output directory
-            shutil.rmtree(book_predictor.output_dir, ignore_errors=True)
+            book_predictor.cleanup()
+            logger.info("Cleaned up output directory")
 
     return StreamingResponse(stream_generator(), media_type="application/json")
