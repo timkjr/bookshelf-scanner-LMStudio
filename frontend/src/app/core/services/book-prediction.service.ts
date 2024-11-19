@@ -21,12 +21,14 @@ export class BookPredictionService implements OnDestroy {
     return new Observable<Result<string>>((observer) => {
       this.abortController = new AbortController();
 
-      fetch(`${this.apiUrl}/predict`, {
-        method: "POST",
-        body: formData,
-        signal: this.abortController.signal,
-      })
-        .then((response) => {
+      const fetchData = async () => {
+        try {
+          const response = await fetch(`${this.apiUrl}/predict`, {
+            method: "POST",
+            body: formData,
+            signal: this.abortController!.signal,
+          });
+
           if (!response.ok) {
             observer.error(`Server error: ${response.statusText}`);
             return;
@@ -36,60 +38,43 @@ export class BookPredictionService implements OnDestroy {
           const decoder = new TextDecoder("utf-8");
           let buffer = "";
 
-          const readStream = async () => {
-            try {
-              const {done, value} = await reader.read();
+          while (true) {
+            const {done, value} = await reader.read();
+            if (done) {
+              observer.complete();
+              break;
+            }
 
-              if (done) {
-                observer.complete();
-                return;
+            buffer += decoder.decode(value, {stream: true});
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (!line.trim()) {
+                continue;
               }
 
-              const chunk = decoder.decode(value);
-              // Split the chunk by newline to get individual results
-              buffer += chunk;
-
-              const lines = buffer.split("\n");
-              buffer = lines.pop()!; // Keep the last partial line
-
-              for (const line of lines) {
-                if (line.trim() === "") {
-                  continue;
-                }
-
-                try {
-                  const data: Result<string> = JSON.parse(line);
-                  observer.next(data);
-                } catch (e) {
-                  observer.error(`Error parsing JSON: ${e}`);
-                }
-              }
-
-              await readStream();
-            } catch (error) {
-              if (this.abortController?.signal.aborted) {
-                observer.error("Process canceled by user.");
-              } else {
-                observer.error(`Error reading stream: ${error}`);
+              try {
+                const data: Result<string> = JSON.parse(line);
+                observer.next(data);
+              } catch (e) {
+                observer.error(`Error parsing JSON: ${e}`);
               }
             }
-          };
-
-          readStream();
-        })
-        .catch((error) => {
+          }
+        } catch (error) {
           if (this.abortController?.signal.aborted) {
             observer.error("Process canceled by user.");
           } else {
-            observer.error(`Fetch error: ${error}`);
+            observer.error(`Error: ${error}`);
           }
-        });
-    }).pipe(
-      finalize(() => {
-        // Clean up when the observable completes or errors
-        this.abortController = null;
-      })
-    );
+        } finally {
+          this.abortController = null;
+        }
+      };
+
+      fetchData();
+    });
   }
 
   cancelPrediction() {
