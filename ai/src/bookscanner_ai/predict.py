@@ -2,12 +2,13 @@ import os
 import cv2
 import numpy as np
 import logging
+import asyncio
 from ultralytics import YOLO
 from ultralytics.engine.results import Masks, Boxes
 from PIL import Image, ImageEnhance
 from llama_cpp import Llama
 from llama_cpp.llama_chat_format import Llava15ChatHandler, MoondreamChatHandler
-from typing import Generator
+from typing import Generator, AsyncGenerator
 from torch import Tensor
 from .utils import scale_image, image_to_base64, remove_files
 
@@ -49,7 +50,6 @@ class BookPredictor:
             A tuple containing the YOLO segmented image (as base64 string) and a generator of results.
             If no books are detected, returns None.
         """
-
         # Run segmentation and get the YOLO output (segmented image in base64)
         segmentation_result = self._segment_and_prepare_books(image_path)
 
@@ -70,6 +70,42 @@ class BookPredictor:
                 except Exception as e:
                     self.logger.error(f"Error processing book {image_file}: {str(e)}")
                     yield f"Error processing book {image_file}: {str(e)}"
+
+        return yolo_output, result_generator()
+    
+    async def predict_async(self, image_path: str) -> tuple[str, AsyncGenerator[str, None]] | None:
+        """
+        Asynchronously predict the title and author of the books in the image.
+        Args:
+            image_path (str): The path to the image file.
+        Returns:
+            tuple[str, AsyncGenerator[str, None]] | None: 
+            A tuple containing the YOLO segmented image (as base64 string) and an async generator of results.
+            If no books are detected, returns None.
+        """
+        self.logger.info(f"Async Processing image: {image_path}")
+        # Run segmentation asynchronously
+        segmentation_result = await asyncio.to_thread(self._segment_and_prepare_books, image_path)
+
+        if segmentation_result is None:
+            self.logger.info("No books detected.")
+            return None
+
+        yolo_output, cropped_books = segmentation_result
+
+        # Define the async generator for the prediction results
+        async def result_generator() -> AsyncGenerator[str, None]:
+            for i, image_file in enumerate(cropped_books):
+                try:
+                    # Recognize book asynchronously
+                    response = await asyncio.to_thread(self._recognize_book, image_file)
+                    output = f"Book {i + 1}: {response}"
+                    self.logger.info(output)
+                    yield output
+                except Exception as e:
+                    error_message = f"Error processing book {image_file}: {str(e)}"
+                    self.logger.error(error_message)
+                    yield error_message
 
         return yolo_output, result_generator()
     

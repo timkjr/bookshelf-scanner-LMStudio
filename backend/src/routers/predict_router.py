@@ -33,7 +33,7 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        prediction_result = book_predictor.predict(temp_image_path)
+        prediction_result = await book_predictor.predict_async(temp_image_path)
 
         if not prediction_result:
             return StreamingResponse(
@@ -69,7 +69,7 @@ async def predict(request: Request, file: UploadFile = File(...)) -> StreamingRe
                 return
 
             # Then, send the prediction results
-            for result in result_generator:
+            async for result in result_generator:
                 if await request.is_disconnected():
                     client_disconnected = True
                     break

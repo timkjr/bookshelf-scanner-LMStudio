@@ -112,3 +112,6 @@ cd bookshelf-scanner
 1. Open the Frontend in your browser.
 2. Upload an image of your bookshelf.
 3. Wait for the segmented image to appear, followed by streaming book titles and authors as they’re recognized.
+
+## Screenshots
+![Screenshot 1](./docs/screenshot_1.jpg)
