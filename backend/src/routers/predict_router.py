@@ -12,6 +12,7 @@ router = predict_router
 
 # Initialize the BookPredictor
 book_predictor = BookPredictor()
+book_predictor.load_models()
 
 @router.post("/")
 async def predict(request: Request, file: UploadFile = File(...)) -> StreamingResponse:

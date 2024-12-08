@@ -31,6 +31,13 @@ class BookPredictor:
         self.prompt = """Recognize the title and author of this book in the format 'Title by Author'. 
             If there is no author, just the title is fine. 
             If there's no book in the image, please type 'No book'."""
+        
+    def load_models(self) -> None:
+        """
+        Initialize and load the YOLO and Moondream models.
+        """
+        self._init_yolo()
+        self._init_llm()
 
     def predict(self, image_path: str) -> tuple[str, Generator[str, None, None]] | None:
         """
@@ -92,16 +99,33 @@ class BookPredictor:
         if self.llm_initialized:
             return
         
+        # Load multi modal model from huggingface
         self.chat_handler = MoondreamChatHandler.from_pretrained(
             repo_id="vikhyatk/moondream2",
             filename="moondream2-mmproj-f16.gguf",
+            local_dir="models/cache/moondream2",
             verbose=False,
         )
-        self.llm = Llama.from_pretrained(
-            repo_id="vikhyatk/moondream2",
-            filename="moondream2-text-model-f16.gguf",
+        # self.llm = Llama.from_pretrained(
+        #     repo_id="vikhyatk/moondream2",
+        #     filename="moondream2-text-model-f16.gguf",
+        #     local_dir="models/cache/moondream2",
+        #     chat_handler=self.chat_handler,
+        #     n_ctx=1024,
+        #     n_gpu_layers=-1,
+        # )
+
+        # self.chat_handler = MoondreamChatHandler(
+        #     clip_model_path="models/moondream2-mmproj-f16.gguf",
+        #     verbose=False,
+        # )
+
+        # Load custom quantized model from local file
+        self.llm = Llama(
+            model_path="models/moondream2-text-model-Q4_K_M.gguf",
             chat_handler=self.chat_handler,
-            n_ctx=2048,
+            n_gpu_layers=-1,
+            n_ctx=1024,
         )
         self.llm_initialized = True
         self.logger.info("Moondream2 model initialized.")
@@ -174,7 +198,8 @@ class BookPredictor:
         Returns:
             tuple[Masks, Boxes]: The segmentation masks and bounding boxes. If no books are detected, returns None.
         """
-        self._init_yolo()
+        if not self.yolo_initialized:
+            raise ValueError("YOLO model is not initialized., please call load_models() first.")
 
         results = self.yolo_model.predict(
             image,
@@ -251,7 +276,8 @@ class BookPredictor:
         Returns:
             str: The recognized title and author of the book.
         """
-        self._init_llm()
+        if not self.llm_initialized:
+            raise ValueError("Moondream model is not initialized., please call load_models() first.")
 
         response = self.llm.create_chat_completion(messages=[{
             "role": "user",

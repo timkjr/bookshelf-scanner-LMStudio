@@ -2,7 +2,8 @@ from bookscanner_ai import BookPredictor
 
 def test_predict() -> None:
     book_predictor = BookPredictor()
-    result = book_predictor.predict("img_1.jpg")
+    book_predictor.load_models()
+    result = book_predictor.predict("tests/img_1.jpg")
 
     if not result:
         print("No books detected.")
