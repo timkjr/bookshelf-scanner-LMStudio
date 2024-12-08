@@ -90,7 +90,7 @@ cd bookshelf-scanner
 1. **Navigate to the frontend directory:**
 
    ```bash
-   cd ../frontend
+   cd ./frontend
    ```
 
 2. **Install Dependencies:**
@@ -102,7 +102,7 @@ cd bookshelf-scanner
 3. **Run the Frontend Dev Server:**
 
    ```bash
-   bun run dev
+   bun run start
    ```
 
    The UI should now be accessible at `http://localhost:8001`
