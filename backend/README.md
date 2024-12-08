@@ -22,19 +22,13 @@ The backend service is a FastAPI application that receives bookshelf images from
 
 ## Installation
 
-1. **Navigate to the backend directory:**
-
-   ```bash
-   cd backend
-   ```
-
-2. **Set up the Python environment (optional but recommended):**
+1. **Set up the Python environment (optional but recommended):**
 
    ```bash
    poetry config virtualenvs.in-project true
    ```
 
-3. **Install dependencies:**
+2. **Install dependencies:**
 
    ```bash
    poetry install

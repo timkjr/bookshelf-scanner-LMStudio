@@ -34,6 +34,8 @@ This repository contains three main components:
 - The **Backend** streams these results back to the **Frontend**, starting with the segmented image, followed by the books’ data.
 - The **Frontend** updates the UI in real-time as the stream arrives.
 
+![architecture](./docs/architecture.jpg)
+
 ## Installation
 
 ### Prerequisites
@@ -114,4 +116,5 @@ cd bookshelf-scanner
 3. Wait for the segmented image to appear, followed by streaming book titles and authors as they’re recognized.
 
 ## Screenshots
+
 ![Screenshot 1](./docs/screenshot_1.jpg)
