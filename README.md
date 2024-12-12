@@ -36,6 +36,15 @@ This repository contains three main components:
 
 ![architecture](./docs/architecture.jpg)
 
+### Pipeline of image processing and recognition
+
+1. **Image Upload:** The user uploads an image of a bookshelf.
+2. **Segmentation:** The image is sent to the AI service, which segments the books from the background using YOLO 11x segmentation model.
+3. **Book Extraction:** Each segmented book spine is cropped and rotated if necessary.
+4. **Recognition:** Each cropped book individual image is sent to the Moondream2 LLM model for title and author recognition.
+5. **Streaming:** The backend streams the segmented image and recognized book titles and authors back to the frontend. The first chunk contains the segmented image, followed by incremental streams of book data as they are recognized in the fomat of `Book {index}: {title} by {author}`.
+6. **Display:** The frontend displays the segmented image and dynamically updates the recognized book titles and authors as they arrive.
+
 ## Installation
 
 ### Prerequisites
@@ -118,3 +127,8 @@ cd bookshelf-scanner
 ## Screenshots
 
 ![Screenshot 1](./docs/screenshot_1.jpg)
+
+## Contact
+
+If you have any questions or suggestions, feel free to reach out to me at my email address: <suxrobgm@gmail.com>
+My LinkedIn profile: [SuxrobGM](https://www.linkedin.com/in/suxrobgm/)
