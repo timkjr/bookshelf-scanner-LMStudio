@@ -1,6 +1,6 @@
-# Bookshelf Scanner App
+# Bookshelf Scanner App - openAI / non-CUDA
 
-The Bookshelf Scanner App is an end-to-end solution for detecting books from an image of a bookshelf and identifying their titles and authors. It leverages cutting-edge computer vision (YOLO segmentation) and Large Language Models (Moondream2) to deliver a seamless user experience via a modern web interface.
+Sukhrob's Bookshelf Scanner App is an end-to-end solution for detecting books from an image of a bookshelf and identifying their titles and authors. It leverages cutting-edge computer vision (YOLO segmentation) and Large Language Models (Moondream2) to deliver a seamless user experience via a modern web interface.  This version removes CUDA dependencies and encodes options for OpenAI / LM-Studio and non-NVidia hardware acceleration.
 
 ## Overview
 
@@ -55,12 +55,11 @@ You need the following software installed to run the project:
 - [Bun](https://bun.sh/docs/installation)
 - [Python 3.12](https://www.python.org/downloads)
 - [Poetry](https://python-poetry.org/docs)
-- [CUDA Toolkit 12.4 or higher](https://developer.nvidia.com/cuda-toolkit-archive)
 
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/suxrobGM/bookshelf-scanner.git
+git clone https://github.com/timkjr/bookshelf-scanner-openAI
 cd bookshelf-scanner
 ```
 
@@ -131,6 +130,4 @@ cd bookshelf-scanner
 
 ## Contact
 
-If you have any questions or suggestions, feel free to reach out to me at my email address: <suxrobgm@gmail.com> or via LinkedIn.
-
-My LinkedIn profile: [Sukhrob Ilyosbekov](https://www.linkedin.com/in/suxrobgm/)
+The main project is by Sukhrob Ilyosbekov [<suxrobgm@gmail.com> or LinkedIn profile: [Sukhrob Ilyosbekov](https://www.linkedin.com/in/suxrobgm/)]
