@@ -1,0 +1,81 @@
+Using virtualenv: C:\Users\timot\Documents\GitHub\bookshelf-scanner-LMStudio\backend\.venv
+Checking keyring availability: Available
+Installing dependencies from lock file
+
+Finding the necessary packages for the current system
+
+Package operations: 0 installs, 0 updates, 0 removals, 73 skipped
+
+  - Installing annotated-types (0.7.0): Skipped for the following reason: Already installed
+  - Installing anyio (4.7.0): Skipped for the following reason: Already installed
+  - Installing bookscanner-ai (0.1.1 C:/Users/timot/Documents/GitHub/bookshelf-scanner-LMStudio/ai): Skipped for the following reason: Already installed
+  - Installing certifi (2024.8.30): Skipped for the following reason: Already installed
+  - Installing charset-normalizer (3.4.0): Skipped for the following reason: Already installed
+  - Installing colorama (0.4.6): Skipped for the following reason: Already installed
+  - Installing click (8.1.7): Skipped for the following reason: Already installed
+  - Installing cycler (0.12.1): Skipped for the following reason: Already installed
+  - Installing diskcache (5.6.3): Skipped for the following reason: Already installed
+  - Installing dnspython (2.7.0): Skipped for the following reason: Already installed
+  - Installing contourpy (1.3.1): Skipped for the following reason: Already installed
+  - Installing fastapi (0.115.6): Skipped for the following reason: Already installed
+  - Installing filelock (3.16.1): Skipped for the following reason: Already installed
+  - Installing fonttools (4.55.2): Skipped for the following reason: Already installed
+  - Installing fsspec (2024.10.0): Skipped for the following reason: Already installed
+  - Installing email-validator (2.2.0): Skipped for the following reason: Already installed
+  - Installing httptools (0.6.4): Skipped for the following reason: Already installed
+  - Installing h11 (0.14.0): Skipped for the following reason: Already installed
+  - Installing httpcore (1.0.7): Skipped for the following reason: Already installed
+  - Installing fastapi-cli (0.0.6): Skipped for the following reason: Already installed
+  - Installing jinja2 (3.1.4): Skipped for the following reason: Already installed
+  - Installing kiwisolver (1.4.7): Skipped for the following reason: Already installed
+  - Installing llama-cpp-python (0.2.90): Skipped for the following reason: Already installed
+  - Installing idna (3.10): Skipped for the following reason: Already installed
+  - Installing httpx (0.28.1): Skipped for the following reason: Already installed
+  - Installing markdown-it-py (3.0.0): Skipped for the following reason: Already installed
+  - Installing mdurl (0.1.2): Skipped for the following reason: Already installed
+  - Installing mpmath (1.3.0): Skipped for the following reason: Already installed
+  - Installing huggingface-hub (0.26.5): Skipped for the following reason: Already installed
+  - Installing numpy (2.1.3): Skipped for the following reason: Already installed
+  - Installing opencv-python (4.10.0.84): Skipped for the following reason: Already installed
+  - Installing markupsafe (3.0.2): Skipped for the following reason: Already installed
+  - Installing pandas (2.2.3): Skipped for the following reason: Already installed
+  - Installing opencv-contrib-python (4.10.0.84): Skipped for the following reason: Already installed
+  - Installing pillow (11.0.0): Skipped for the following reason: Already installed
+  - Installing packaging (24.2): Skipped for the following reason: Already installed
+  - Installing pydantic (2.10.3): Skipped for the following reason: Already installed
+  - Installing matplotlib (3.9.3): Skipped for the following reason: Already installed
+  - Installing pyparsing (3.2.0): Skipped for the following reason: Already installed
+  - Installing networkx (3.4.2): Skipped for the following reason: Already installed
+  - Installing python-multipart (0.0.19): Skipped for the following reason: Already installed
+  - Installing psutil (6.1.0): Skipped for the following reason: Already installed
+  - Installing requests (2.32.3): Skipped for the following reason: Already installed
+  - Installing rich (13.9.4): Skipped for the following reason: Already installed
+  - Installing rich-toolkit (0.12.0): Skipped for the following reason: Already installed
+  - Installing pygments (2.18.0): Skipped for the following reason: Already installed
+  - Installing seaborn (0.13.2): Skipped for the following reason: Already installed
+  - Installing python-dotenv (1.0.1): Skipped for the following reason: Already installed
+  - Installing pytz (2024.2): Skipped for the following reason: Already installed
+  - Installing pyyaml (6.0.2): Skipped for the following reason: Already installed
+  - Installing py-cpuinfo (9.0.0): Skipped for the following reason: Already installed
+  - Installing pydantic-core (2.27.1): Skipped for the following reason: Already installed
+  - Installing scipy (1.14.1): Skipped for the following reason: Already installed
+  - Installing python-dateutil (2.9.0.post0): Skipped for the following reason: Already installed
+  - Installing setuptools (75.6.0): Skipped for the following reason: Already installed
+  - Installing shellingham (1.5.4): Skipped for the following reason: Already installed
+  - Installing tqdm (4.67.1): Skipped for the following reason: Already installed
+  - Installing sniffio (1.3.1): Skipped for the following reason: Already installed
+  - Installing starlette (0.41.3): Skipped for the following reason: Already installed
+  - Installing sympy (1.13.1): Skipped for the following reason: Already installed
+  - Installing torch (2.5.1+cpu): Skipped for the following reason: Already installed
+  - Installing torchaudio (2.5.1+cpu): Skipped for the following reason: Already installed
+  - Installing torchvision (0.20.1+cpu): Skipped for the following reason: Already installed
+  - Installing six (1.17.0): Skipped for the following reason: Already installed
+  - Installing typer (0.15.1): Skipped for the following reason: Already installed
+  - Installing typing-extensions (4.12.2): Skipped for the following reason: Already installed
+  - Installing ultralytics (8.3.47): Skipped for the following reason: Already installed
+  - Installing urllib3 (2.2.3): Skipped for the following reason: Already installed
+  - Installing watchfiles (1.0.0): Skipped for the following reason: Already installed
+  - Installing tzdata (2024.2): Skipped for the following reason: Already installed
+  - Installing uvicorn (0.32.1): Skipped for the following reason: Already installed
+  - Installing websockets (14.1): Skipped for the following reason: Already installed
+  - Installing ultralytics-thop (2.0.12): Skipped for the following reason: Already installed

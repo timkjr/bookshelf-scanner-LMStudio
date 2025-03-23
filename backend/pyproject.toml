@@ -11,15 +11,14 @@ python = "^3.12"
 fastapi = {extras = ["standard"], version = "^0.115.6"}
 bookscanner-ai = {path = "../ai", develop = true}
 
-
 [[tool.poetry.source]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
+name = "pytorch-whl"
+url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
 [[tool.poetry.source]]
-name = "llama-cpp-python-cu124"
-url = "https://abetlen.github.io/llama-cpp-python/whl/cu124"
+name = "llama-cpp-python-whl"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cpu"
 priority = "explicit"
 
 [build-system]

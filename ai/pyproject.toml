@@ -10,24 +10,24 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-torch = {version = "^2.5.1+cu124", source = "pytorch-cu124"}
-torchvision = {version = "^0.20.1+cu124", source = "pytorch-cu124"}
-torchaudio = {version = "^2.5.1+cu124", source = "pytorch-cu124"}
+torch = {version = "^2.5.1+cpu", source = "pytorch-whl"}
+torchvision = {version = "^0.20.1+cpu", source = "pytorch-whl"}
+torchaudio = {version = "^2.5.1+cpu", source = "pytorch-whl"}
 ultralytics = "^8.3.47"
-llama-cpp-python = {version = "^0.2.90", source = "llama-cpp-python-cu124"}
+llama-cpp-python = {version = "^0.2.90", source = "llama-cpp-python-whl"}
 opencv-contrib-python = "^4.10.0.84"
 huggingface-hub = "^0.26.5"
 
 
 [[tool.poetry.source]]
-name = "pytorch-cu124"
-url = "https://download.pytorch.org/whl/cu124"
+name = "pytorch-whl"
+url = "https://download.pytorch.org/whl/cpu"
 priority = "explicit"
 
 
 [[tool.poetry.source]]
-name = "llama-cpp-python-cu124"
-url = "https://abetlen.github.io/llama-cpp-python/whl/cu124"
+name = "llama-cpp-python-whl"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cpu"
 priority = "explicit"
 
 [build-system]
